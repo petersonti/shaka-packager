@@ -225,15 +225,34 @@ bool MP4MediaParser::Flush() {
   return true;
 }
 
+#include <stdint.h>    // uint64_t
+static const char* FormatFileSize(uint64_t size) {
+  char* suffix[] = {"B", "KB", "MB", "GB"};
+  char length = sizeof(suffix) / sizeof(suffix[0]);
+
+  int i = 0;
+  double dblBytes = size;
+
+  if (size > 1024) {
+    for (i = 0; (size / 1024) > 0 && i < length - 1; i++, size /= 1024)
+      dblBytes = size / 1024.0;
+  }
+
+  static char output[200];
+  sprintf(output, "%.02lf %s", dblBytes, suffix[i]);
+  return output;
+}
+
+std::string file_name;
 bool MP4MediaParser::Parse(const uint8_t* buf, int size) {
   DCHECK_NE(state_, kWaitingForInit);
   size_read_ += size;
   if (segment_count_ == 0 && size_read_ > 65536) {
     // only print by size if we haven't read a sidx box after the first pass
     // (first pass is always a read of 65536 bytes)
-    std::cout << '\r' << size_read_ << '/' << file_size_ << std::flush;
+    std::cout << '\r' << "[INFO]: Decrypting '" << file_name << "' in progress: [" << FormatFileSize(size_read_) << " of " << FormatFileSize(file_size_) << "]";
     if (size_read_ == file_size_) {
-      std::cout << std::endl; // one last buffer flush
+      std::cout << " " << std::endl; // one last buffer flush
     }
   }
 
@@ -269,6 +288,7 @@ bool MP4MediaParser::Parse(const uint8_t* buf, int size) {
 }
 
 bool MP4MediaParser::LoadMoov(const std::string& file_path) {
+  file_name = file_path.substr(file_path.find_last_of("/\\") + 1);
   std::unique_ptr<File, FileCloser> file(
       File::OpenWithNoBuffering(file_path.c_str(), "r"));
   if (!file) {

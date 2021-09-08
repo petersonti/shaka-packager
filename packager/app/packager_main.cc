@@ -551,8 +551,9 @@ int PackagerMain(int argc, char** argv) {
     LOG(ERROR) << "Packaging Error: " << status.ToString();
     return kPackagingFailed;
   }
-  if (!FLAGS_quiet)
-    printf("Packaging completed successfully.\n");
+  //if (!FLAGS_quiet)
+    //just use custom desired output message
+	//printf("Decryption has been completed.\n");
   return kSuccess;
 }
 
