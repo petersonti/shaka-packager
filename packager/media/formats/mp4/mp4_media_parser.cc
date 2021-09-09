@@ -18,15 +18,16 @@
 #include "packager/media/base/key_source.h"
 #include "packager/media/base/macros.h"
 #include "packager/media/base/media_sample.h"
+#include "packager/media/base/muxer_options.h"
 #include "packager/media/base/rcheck.h"
 #include "packager/media/base/video_stream_info.h"
 #include "packager/media/base/video_util.h"
 #include "packager/media/codecs/ac3_audio_util.h"
+#include "packager/media/codecs/ac4_audio_util.h"
 #include "packager/media/codecs/av1_codec_configuration_record.h"
 #include "packager/media/codecs/avc_decoder_configuration_record.h"
 #include "packager/media/codecs/dovi_decoder_configuration_record.h"
 #include "packager/media/codecs/ec3_audio_util.h"
-#include "packager/media/codecs/ac4_audio_util.h"
 #include "packager/media/codecs/es_descriptor.h"
 #include "packager/media/codecs/hevc_decoder_configuration_record.h"
 #include "packager/media/codecs/vp_codec_configuration_record.h"
@@ -248,8 +249,10 @@ bool MP4MediaParser::Parse(const uint8_t* buf, int size) {
   if (segment_count_ == 0 && size_read_ > 65536) {
     // only print by size if we haven't read a sidx box after the first pass
     // (first pass is always a read of 65536 bytes)
-    std::cout << '\r' << " [INFO]: TEST '" << file_name_ << "' in progress: [" << FormatFileSize(size_read_) << " of " << totalFileSize << "]";
-    
+    std::cout << '\r' << " [INFO]: Decrypting '" << file_name_
+              << "' in progress: [" << FormatFileSize(size_read_) << " of "
+              << totalFileSize << "]";
+
     if (size_read_ == file_size_) {
       std::cout << std::endl; // one last buffer flush
     }
@@ -398,9 +401,14 @@ bool MP4MediaParser::ParseBox(bool* err) {
   } else if (reader->type() == FOURCC_sidx) {
     *err = !ParseSidx(reader.get());
   } else if (reader->type() == FOURCC_moof) {
+
+    const std::string totalFileSize = FormatFileSize(file_size_);
     moof_count_++;
     if (segment_count_ > 0) {
-      std::cout << '\r' << "Decrypting" << moof_count_ << '/' << segment_count_ << std::flush;
+      //std::cout << '\r' << moof_count_ << '/' << segment_count_ << std::flush;
+      std::cout << '\r' << " [INFO]: Decrypting '" << file_name_
+                << "' in progress: [" << moof_count_ << " of " << segment_count_
+                << "] [" << totalFileSize << "]";
     }
     moof_head_ = queue_.head();
     *err = !ParseMoof(reader.get());
