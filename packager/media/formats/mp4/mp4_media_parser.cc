@@ -229,7 +229,6 @@ bool MP4MediaParser::Flush() {
 static const char* FormatFileSize(uint64_t size) {
   char* suffix[] = {"B", "KB", "MB", "GB"};
   char length = sizeof(suffix) / sizeof(suffix[0]);
-
   int i = 0;
   double dblBytes = size;
 
@@ -237,22 +236,22 @@ static const char* FormatFileSize(uint64_t size) {
     for (i = 0; (size / 1024) > 0 && i < length - 1; i++, size /= 1024)
       dblBytes = size / 1024.0;
   }
-
   static char output[200];
   sprintf(output, "%.02lf %s", dblBytes, suffix[i]);
   return output;
 }
 
-std::string file_name;
 bool MP4MediaParser::Parse(const uint8_t* buf, int size) {
   DCHECK_NE(state_, kWaitingForInit);
+  const std::string totalFileSize = FormatFileSize(file_size_);
   size_read_ += size;
   if (segment_count_ == 0 && size_read_ > 65536) {
     // only print by size if we haven't read a sidx box after the first pass
     // (first pass is always a read of 65536 bytes)
-    std::cout << '\r' << "[INFO]: Decrypting '" << file_name << "' in progress: [" << FormatFileSize(size_read_) << " of " << FormatFileSize(file_size_) << "]";
+    std::cout << '\r' << " [INFO]: TEST '" << file_name_ << "' in progress: [" << FormatFileSize(size_read_) << " of " << totalFileSize << "]";
+    
     if (size_read_ == file_size_) {
-      std::cout << " " << std::endl; // one last buffer flush
+      std::cout << std::endl; // one last buffer flush
     }
   }
 
@@ -288,16 +287,14 @@ bool MP4MediaParser::Parse(const uint8_t* buf, int size) {
 }
 
 bool MP4MediaParser::LoadMoov(const std::string& file_path) {
-  file_name = file_path.substr(file_path.find_last_of("/\\") + 1);
-  std::unique_ptr<File, FileCloser> file(
-      File::OpenWithNoBuffering(file_path.c_str(), "r"));
+  file_name_ = file_path.substr(file_path.find_last_of("/\\") + 1);
+  std::unique_ptr<File, FileCloser> file(File::OpenWithNoBuffering(file_path.c_str(), "r"));
   if (!file) {
     LOG(ERROR) << "Unable to open media file '" << file_path << "'";
     return false;
   }
   if (!file->Seek(0)) {
-    LOG(WARNING) << "Filesystem does not support seeking on file '" << file_path
-               << "'";
+    LOG(WARNING) << "Filesystem does not support seeking on file '" << file_path << "'";
     return false;
   }
 
@@ -403,7 +400,7 @@ bool MP4MediaParser::ParseBox(bool* err) {
   } else if (reader->type() == FOURCC_moof) {
     moof_count_++;
     if (segment_count_ > 0) {
-      std::cout << '\r' << moof_count_ << '/' << segment_count_ << std::flush;
+      std::cout << '\r' << "Decrypting" << moof_count_ << '/' << segment_count_ << std::flush;
     }
     moof_head_ = queue_.head();
     *err = !ParseMoof(reader.get());

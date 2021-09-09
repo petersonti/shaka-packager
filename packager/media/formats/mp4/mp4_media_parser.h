@@ -109,6 +109,7 @@ class MP4MediaParser : public MediaParser {
 
   int64_t size_read_;
   int64_t file_size_;
+  std::string file_name_;
   std::unique_ptr<Movie> moov_;
   std::unique_ptr<TrackRunIterator> runs_;
 
